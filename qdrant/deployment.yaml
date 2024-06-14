@@ -1,0 +1,81 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: qdrant
+  name: qdrant
+spec:
+  type: NodePort
+  ports:
+    - name: tcp-one
+      port: 6333
+      protocol: TCP
+      targetPort: 6333
+    - name: tcp-two
+      port: 6334
+      protocol: TCP
+      targetPort: 6334
+  selector:
+    app: qdrant
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    name: qdrant
+  name: qdrant
+spec:
+  replicas: 1
+#  strategy:
+#    type: RollingUpdate # Recreate, RollingUpdate
+  selector:
+    matchLabels:
+      app: qdrant
+  template:
+    metadata:
+      labels:
+        app: qdrant
+      name: qdrant
+    spec:
+      serviceAccountName: qdrant
+      containers:
+        - name: qdrant
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+#            - name: TODO
+#              value: TODO
+          image: qdrant/qdrant:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 11434
+              protocol: TCP
+          resources:
+             limits:
+               cpu: 3000m
+               memory: 3Gi
+             requests:
+               cpu: 500m
+               memory: 1000Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+#          livenessProbe:
+#            failureThreshold: 30
+#            tcpSocket:
+#              port: 11434
+#            initialDelaySeconds: 30
+#            timeoutSeconds: 10
+#          readinessProbe:
+#            tcpSocket:
+#              port: 11434
+#            initialDelaySeconds: 20
+#            timeoutSeconds: 5
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
